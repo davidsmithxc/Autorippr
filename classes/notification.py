@@ -38,7 +38,8 @@ class Notification(object):
                         method), method.capitalize(), self.config['methods'][method])
                     method_class.send_notification(status)
                     del method_class
-                except ImportError:
+                except ImportError as e:
+                    print 'Traceback:', e
                     self.log.error(
                         "Error loading notification class: {}".format(method))
 
@@ -66,3 +67,16 @@ class Notification(object):
 
         status = 'Extra of %s complete' % dbvideo.vidname
         self._send(status)
+
+if __name__ == '__main__':
+    import yaml
+
+    class dbVideo():
+        def __init__(self, name):
+            self.vidname = name
+
+    CONFIG_FILE = "C:/Users/David/Documents/Projects/autorippr/settings.cfg"
+    config = yaml.safe_load(open(CONFIG_FILE))
+
+    notify = Notification(config, True, False)
+    notify.rip_complete(dbVideo('Predestination'))

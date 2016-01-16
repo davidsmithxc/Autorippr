@@ -5,10 +5,12 @@ __all__ = [
     'docopt',
     'ffmpeg',
     'filebot',
+    'gui',
     'handbrake',
     'logger',
     'makemkv',
     'notification',
     'stopwatch',
-    'testing'
+    'testing',
+    'guihelper'
 ]

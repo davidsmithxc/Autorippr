@@ -12,6 +12,7 @@ Copyright (c) 2012, Jason Millward
 """
 
 import os
+import sys
 import re
 import subprocess
 import logger
@@ -24,6 +25,7 @@ class HandBrake(object):
         self.log = logger.Logger("HandBrake", debug, silent)
         self.compressionPath = compressionpath
         self.vformat = vformat
+        self.os = sys.platform
 
     def compress(self, nice, args, dbvideo):
         """
@@ -55,13 +57,22 @@ class HandBrake(object):
 
         invid = "%s/%s" % (dbvideo.path, dbvideo.filename)
         outvid = "%s/%s" % (dbvideo.path, vidname)
-        command = 'nice -n {0} {1}HandBrakeCLI --verbose -i "{2}" -o "{3}" {4}'.format(
-            nice,
-            self.compressionPath,
-            invid,
-            outvid,
-            ' '.join(args)
-        )
+
+        if self.os == 'win32':
+            command = '{0}HandBrakeCLI --verbose -i "{1}" -o "{2}" {3}'.format(
+                self.compressionPath,
+                invid,
+                outvid,
+                ' '.join(args)
+            )
+        elif self.os == 'Unix':
+            command = 'nice -n {0} {1}HandBrakeCLI --verbose -i "{2}" -o "{3}" {4}'.format(
+                nice,
+                self.compressionPath,
+                invid,
+                outvid,
+                ' '.join(args)
+            )
 
         proc = subprocess.Popen(
             command,

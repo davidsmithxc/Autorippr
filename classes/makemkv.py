@@ -6,7 +6,7 @@ Released under the MIT license
 Copyright (c) 2012, Jason Millward
 
 @category   misc
-@version    $Id: 1.7-test4, 2015-11-09 12:30:44 ACDT $;
+@version    $Id: 1.7-test5, 2016-01-03 11:34:13 ACDT $;
 @author     Jason Millward
 @license    http://opensource.org/licenses/MIT
 """
@@ -34,6 +34,12 @@ class MakeMKV(object):
         self.log = logger.Logger("Makemkv", config['debug'], config['silent'])
         self.makemkvconPath = config['makemkv']['makemkvconPath']
         self.saveFiles = []
+        self.os = config['os']
+
+        if self.os == 'win32':
+            self.makemkvMessages = './tmp/makemkvMessages.log'
+        else:
+            self.makemkvMessages = '/tmp/makemkvMessages'
 
     def _clean_title(self):
         """
@@ -84,7 +90,7 @@ class MakeMKV(object):
         """
         toreturn = []
 
-        with open('/tmp/makemkvMessages', 'r') as messages:
+        with open(self.makemkvMessages, 'r') as messages:
             for line in messages:
                 if line[:len(stype)] == stype:
                     values = line.replace("%s:" % stype, "").strip()
@@ -245,7 +251,7 @@ class MakeMKV(object):
         lines = results.split("\n")
         for line in lines:
             if line[:4] == "DRV:":
-                if "/dev/" in line:
+                if (self.os == 'Unix' and "/dev/" in line) or (self.os == 'win32'):
                     out = line.split(',')
 
                     if len(str(out[5])) > 3:
@@ -278,7 +284,7 @@ class MakeMKV(object):
                 'info',
                 'disc:%d' % self.discIndex,
                 '--minlength=%d' % self.minLength,
-                '--messages=/tmp/makemkvMessages'
+                '--messages=%s' % self.makemkvMessages
             ],
             stderr=subprocess.PIPE
         )
@@ -301,6 +307,7 @@ class MakeMKV(object):
 
         if foundtitles > 0:
             for titleNo in set(self._read_mkv_messages("TINFO")):
+
                 durTemp = self._read_mkv_messages("TINFO", titleNo, 9)[0]
                 x = time.strptime(durTemp, '%H:%M:%S')
                 titleDur = datetime.timedelta(
@@ -333,7 +340,8 @@ class MakeMKV(object):
 
                 self.saveFiles.append({
                     'index': titleNo,
-                    'title': title
+                    'title': title,
+                    'dur': titleDur
                 })
         else:
             pass
@@ -382,3 +390,34 @@ class MakeMKV(object):
                 vidName   (Str)
         """
         return self._remove_duplicates(self.saveFiles)
+
+    def set_savefiles(self, files):
+        """
+            Sets save files
+
+            Inputs:
+                type   ([Dict]): [{'index': (Str), 'title': (Str), 'dur': (Int)}]
+
+            Outputs:
+                None
+        """
+
+        self.saveFiles = files
+
+    def set_type(self, vidType):
+        """
+            Sets local video type
+
+            Inputs:
+                type   (Str): tv | movie
+
+            Outputs:
+                vidType    (Str)
+        """
+
+        if vidType == 'tv' or vidType == 'movie':
+            self.vidType = vidType
+        else:
+            self.vidType = None
+
+        return self.vidType
