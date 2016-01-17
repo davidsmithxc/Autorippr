@@ -1,139 +1,168 @@
-#!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-"""
-ZetCode PyQt4 tutorial 
+# Form implementation generated from reading ui file 'mainwindow.ui'
+#
+# Created by: PyQt4 UI code generator 4.11.4
+#
+# WARNING! All changes made in this file will be lost!
 
-In this example, we create a bit
-more complicated window layout using
-the QtGui.QGridLayout manager. 
+from PyQt4 import QtCore, QtGui
 
-author: Jan Bodnar
-website: zetcode.com 
-last edited: October 2011
-"""
+try:
+    _fromUtf8 = QtCore.QString.fromUtf8
+except AttributeError:
+    def _fromUtf8(s):
+        return s
 
-import sys
-from PyQt4 import QtGui
+try:
+    _encoding = QtGui.QApplication.UnicodeUTF8
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig, _encoding)
+except AttributeError:
+    def _translate(context, text, disambig):
+        return QtGui.QApplication.translate(context, text, disambig)
 
+class Ui_MainWindow(object):
+    def setupUi(self, MainWindow):
+        MainWindow.setObjectName(_fromUtf8("MainWindow"))
+        MainWindow.resize(764, 541)
+        self.centralWidget = QtGui.QWidget(MainWindow)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.centralWidget.sizePolicy().hasHeightForWidth())
+        self.centralWidget.setSizePolicy(sizePolicy)
+        self.centralWidget.setObjectName(_fromUtf8("centralWidget"))
+        self.gridLayout_3 = QtGui.QGridLayout(self.centralWidget)
+        self.gridLayout_3.setMargin(11)
+        self.gridLayout_3.setSpacing(6)
+        self.gridLayout_3.setObjectName(_fromUtf8("gridLayout_3"))
+        self.gridLayout = QtGui.QGridLayout()
+        self.gridLayout.setSizeConstraint(QtGui.QLayout.SetNoConstraint)
+        self.gridLayout.setMargin(11)
+        self.gridLayout.setSpacing(6)
+        self.gridLayout.setObjectName(_fromUtf8("gridLayout"))
+        self.groupBox = QtGui.QGroupBox(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.groupBox.sizePolicy().hasHeightForWidth())
+        self.groupBox.setSizePolicy(sizePolicy)
+        self.groupBox.setObjectName(_fromUtf8("groupBox"))
+        self.gridLayout_4 = QtGui.QGridLayout(self.groupBox)
+        self.gridLayout_4.setMargin(11)
+        self.gridLayout_4.setSpacing(6)
+        self.gridLayout_4.setObjectName(_fromUtf8("gridLayout_4"))
+        self.gridLayout_2 = QtGui.QGridLayout()
+        self.gridLayout_2.setMargin(11)
+        self.gridLayout_2.setSpacing(6)
+        self.gridLayout_2.setObjectName(_fromUtf8("gridLayout_2"))
+        self.textEditShowTitle = QtGui.QLineEdit(self.groupBox)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Maximum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.textEditShowTitle.sizePolicy().hasHeightForWidth())
+        self.textEditShowTitle.setSizePolicy(sizePolicy)
+        self.textEditShowTitle.setObjectName(_fromUtf8("textEditShowTitle"))
+        self.gridLayout_2.addWidget(self.textEditShowTitle, 0, 0, 1, 1)
+        self.comboShowTitle = QtGui.QComboBox(self.groupBox)
+        self.comboShowTitle.setObjectName(_fromUtf8("comboShowTitle"))
+        self.gridLayout_2.addWidget(self.comboShowTitle, 1, 0, 1, 1)
+        self.comboSeasons = QtGui.QComboBox(self.groupBox)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.comboSeasons.sizePolicy().hasHeightForWidth())
+        self.comboSeasons.setSizePolicy(sizePolicy)
+        self.comboSeasons.setObjectName(_fromUtf8("comboSeasons"))
+        self.gridLayout_2.addWidget(self.comboSeasons, 1, 1, 1, 1)
+        self.lineEditNumbers = QtGui.QLineEdit(self.groupBox)
+        self.lineEditNumbers.setObjectName(_fromUtf8("lineEditNumbers"))
+        self.gridLayout_2.addWidget(self.lineEditNumbers, 1, 2, 1, 1)
+        self.gridLayout_4.addLayout(self.gridLayout_2, 0, 0, 1, 1)
+        spacerItem = QtGui.QSpacerItem(40, 20, QtGui.QSizePolicy.MinimumExpanding, QtGui.QSizePolicy.Minimum)
+        self.gridLayout_4.addItem(spacerItem, 0, 1, 1, 1)
+        self.gridLayout.addWidget(self.groupBox, 0, 2, 4, 2)
+        self.tableWidget = QtGui.QTableWidget(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Expanding, QtGui.QSizePolicy.Expanding)
+        sizePolicy.setHorizontalStretch(1)
+        sizePolicy.setVerticalStretch(1)
+        sizePolicy.setHeightForWidth(self.tableWidget.sizePolicy().hasHeightForWidth())
+        self.tableWidget.setSizePolicy(sizePolicy)
+        self.tableWidget.setColumnCount(0)
+        self.tableWidget.setObjectName(_fromUtf8("tableWidget"))
+        self.tableWidget.setRowCount(0)
+        self.gridLayout.addWidget(self.tableWidget, 7, 0, 1, 4)
+        self.buttonDiscInfo = QtGui.QPushButton(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Maximum)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.buttonDiscInfo.sizePolicy().hasHeightForWidth())
+        self.buttonDiscInfo.setSizePolicy(sizePolicy)
+        self.buttonDiscInfo.setObjectName(_fromUtf8("buttonDiscInfo"))
+        self.gridLayout.addWidget(self.buttonDiscInfo, 0, 0, 2, 1)
+        self.checkTV = QtGui.QCheckBox(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.checkTV.sizePolicy().hasHeightForWidth())
+        self.checkTV.setSizePolicy(sizePolicy)
+        self.checkTV.setObjectName(_fromUtf8("checkTV"))
+        self.gridLayout.addWidget(self.checkTV, 0, 1, 2, 1)
+        self.buttonRip = QtGui.QPushButton(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.buttonRip.sizePolicy().hasHeightForWidth())
+        self.buttonRip.setSizePolicy(sizePolicy)
+        self.buttonRip.setObjectName(_fromUtf8("buttonRip"))
+        self.gridLayout.addWidget(self.buttonRip, 2, 0, 1, 1)
+        self.buttonTvInfo = QtGui.QPushButton(self.centralWidget)
+        self.buttonTvInfo.setObjectName(_fromUtf8("buttonTvInfo"))
+        self.gridLayout.addWidget(self.buttonTvInfo, 2, 1, 1, 1)
+        self.buttonCompress = QtGui.QPushButton(self.centralWidget)
+        sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Maximum, QtGui.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.buttonCompress.sizePolicy().hasHeightForWidth())
+        self.buttonCompress.setSizePolicy(sizePolicy)
+        self.buttonCompress.setObjectName(_fromUtf8("buttonCompress"))
+        self.gridLayout.addWidget(self.buttonCompress, 3, 0, 1, 1)
+        self.buttonFB = QtGui.QPushButton(self.centralWidget)
+        self.buttonFB.setObjectName(_fromUtf8("buttonFB"))
+        self.gridLayout.addWidget(self.buttonFB, 3, 1, 1, 1)
+        self.plainTextEdit = QtGui.QPlainTextEdit(self.centralWidget)
+        self.plainTextEdit.setObjectName(_fromUtf8("plainTextEdit"))
+        self.gridLayout.addWidget(self.plainTextEdit, 8, 0, 1, 4)
+        self.gridLayout_3.addLayout(self.gridLayout, 0, 0, 1, 1)
+        MainWindow.setCentralWidget(self.centralWidget)
+        self.menuBar = QtGui.QMenuBar(MainWindow)
+        self.menuBar.setGeometry(QtCore.QRect(0, 0, 764, 21))
+        self.menuBar.setObjectName(_fromUtf8("menuBar"))
+        self.menuAutoRippr = QtGui.QMenu(self.menuBar)
+        self.menuAutoRippr.setObjectName(_fromUtf8("menuAutoRippr"))
+        MainWindow.setMenuBar(self.menuBar)
+        self.mainToolBar = QtGui.QToolBar(MainWindow)
+        self.mainToolBar.setObjectName(_fromUtf8("mainToolBar"))
+        MainWindow.addToolBar(QtCore.Qt.TopToolBarArea, self.mainToolBar)
+        self.statusBar = QtGui.QStatusBar(MainWindow)
+        self.statusBar.setObjectName(_fromUtf8("statusBar"))
+        MainWindow.setStatusBar(self.statusBar)
+        self.menuBar.addAction(self.menuAutoRippr.menuAction())
 
-class Ui_MainWindow(QtGui.QWidget):
-    
-    def __init__(self):
-        super(Example, self).__init__()
-        
-        self.initUI()
-        
-    def setupUi(self, junk):
-        
-        # Demo
-        if False:
-            title = QtGui.QLabel('Title')
-            author = QtGui.QLabel('Author')
-            review = QtGui.QLabel('Review')
+        self.retranslateUi(MainWindow)
+        QtCore.QMetaObject.connectSlotsByName(MainWindow)
 
-            titleEdit = QtGui.QLineEdit()
-            authorEdit = QtGui.QLineEdit()
-            reviewEdit = QtGui.QTextEdit()
+    def retranslateUi(self, MainWindow):
+        MainWindow.setWindowTitle(_translate("MainWindow", "MainWindow", None))
+        self.groupBox.setTitle(_translate("MainWindow", "Show Title / Season", None))
+        self.textEditShowTitle.setText(_translate("MainWindow", "Show Title", None))
+        self.lineEditNumbers.setText(_translate("MainWindow", "Episode Numbers", None))
+        self.buttonDiscInfo.setText(_translate("MainWindow", "Disk Info", None))
+        self.checkTV.setText(_translate("MainWindow", "TV Show", None))
+        self.buttonRip.setText(_translate("MainWindow", "Rip", None))
+        self.buttonTvInfo.setText(_translate("MainWindow", "TV Info", None))
+        self.buttonCompress.setText(_translate("MainWindow", "Compress", None))
+        self.buttonFB.setText(_translate("MainWindow", "Filebot", None))
+        self.menuAutoRippr.setTitle(_translate("MainWindow", "AutoRippr", None))
 
-            grid = QtGui.QGridLayout()
-            grid.setSpacing(10)
-
-            grid.addWidget(title, 1, 0)
-            grid.addWidget(titleEdit, 1, 1)
-
-            grid.addWidget(author, 2, 0)
-            grid.addWidget(authorEdit, 2, 1)
-
-            grid.addWidget(review, 3, 0)
-            grid.addWidget(reviewEdit, 3, 1, 5, 1)
-            
-            self.setLayout(grid) 
-            
-            self.setGeometry(300, 300, 350, 300)
-            self.setWindowTitle('Review')    
-            self.show()
-
-        # Autorippr
-        else:
-            grid = QtGui.QGridLayout()
-            grid.setSpacing(5)
-
-            # buttons
-            self.buttonDiscInfo = QtGui.QPushButton()
-            self.buttonDiscInfo.setText('Disk Info')
-
-            self.buttonRip = QtGui.QPushButton()
-            self.buttonRip.setText('Rip')
-
-            self.buttonCompress = QtGui.QPushButton()
-            self.buttonCompress.setText('Compress')
-
-            self.buttonTvInfo = QtGui.QPushButton()
-            self.buttonTvInfo.setText('TV Info')
-
-            self.buttonFB = QtGui.QPushButton()
-            self.buttonFB.setText('Filebot')
-
-            # check boxes
-            self.checkTV = QtGui.QCheckBox()
-            self.checkTV.setText('TV Show')
-
-            # combo boxes
-            self.comboSeasons = QtGui.QComboBox()
-
-            # line edit
-            self.textEditShowTitle = QtGui.QLineEdit()
-            self.lineEditNumbers = QtGui.QLineEdit()
-
-            # tables
-            self.tableWidget = QtGui.QTableWidget()
-            self.listView = QtGui.QListView()
-
-            # create some spacers
-            self.spacer = QtGui.QSpacerItem(20, 20)
-
-            # Add buttons to layout
-            grid.addWidget(self.buttonDiscInfo, 0, 0)
-            grid.addWidget(self.buttonRip, 1, 0)
-            grid.addWidget(self.buttonCompress, 2, 0)
-
-            grid.addWidget(self.checkTV, 0, 1)
-            grid.addWidget(self.buttonTvInfo, 1, 1)
-            grid.addWidget(self.buttonFB, 2, 1)
-
-
-            # add other items
-            self.groupBox = QtGui.QGroupBox()
-            self.groupBox.setTitle('Show/Ep Info')
-            grid.addWidget(self.groupBox, 0, 2, 3, 5)
-
-            grid.addItem(self.spacer, 1, 2)
-            grid.addWidget(self.textEditShowTitle, 1, 3)
-            grid.addWidget(self.comboSeasons, 1, 4)
-            grid.addWidget(self.lineEditNumbers, 1, 5)
-            grid.addItem(self.spacer, 1, 6)
-
-            # add tables
-            grid.addWidget(self.tableWidget, 3, 0, 4, 7)
-            grid.addWidget(self.listView, 7, 0, 4, 7)
-
-            # set lay out and show
-            self.setLayout(grid) 
-            
-            self.setGeometry(300, 300, 350, 300)
-            self.setWindowTitle('Review')    
-            self.show()
-
-
-
-        
-def main():
-    
-    app = QtGui.QApplication(sys.argv)
-    ex = Example()
-    sys.exit(app.exec_())
-
-
-if __name__ == '__main__':
-    main()

@@ -78,18 +78,29 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         self.setupUi(self)
 
         self.config = config
+        
+        # initialize Autoripper objects
+        log.debug("Ripping initialised")
+        self.mkv_api = makemkv.MakeMKV(self.config)
+        self.dvds = None
 
+        # initialize threaded GUI functions
+        self.discInfo_thread = guihelper.discInfo(self.mkv_api)
+
+        # connect signals to slots
         self.buttonRip.clicked.connect(self.rip)
         self.buttonCompress.clicked.connect(self.compress)
         self.buttonDiscInfo.clicked.connect(self.discInfo)
         self.buttonFB.clicked.connect(self.extras)
         self.buttonTvInfo.clicked.connect(self.tvInfo)
         self.checkTV.stateChanged.connect(self.tvCheckBox)
+        self.comboShowTitle.currentIndexChanged.connect(self.showSelected)
 
         self.textEditShowTitle.setValidator(guihelper.ValidTvTitle(self))
         self.textEditShowTitle.setDisabled(True)
         self.textEditShowTitle.returnPressed.connect(self.showNameEdited)
         self.comboSeasons.setDisabled(True)
+        self.comboShowTitle.setDisabled(True)
         self.lineEditNumbers.setDisabled(True)
 
         # This is the visual element to enter TV show titles
@@ -100,10 +111,6 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
 
         self.showTVDB = None
 
-        # initialize Autoripper objects
-        log.debug("Ripping initialised")
-        self.mkv_api = makemkv.MakeMKV(self.config)
-        self.dvds = None
 
 
     def eject(self, config, drive):
@@ -352,7 +359,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         """
         log = logger.Logger("Extras", self.config['debug'], self.config['silent'])
 
-        fb = filebot.FileBot(self.config['debug'], self.config['silent'])
+        fb = filebot.FileBot(self.config['debug'], self.config['silent'], self.plainTextEdit)
 
         dbvideos = database.next_video_to_filebot()
 
@@ -421,6 +428,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         else:
             log.info("No videos ready for filebot")
 
+    def _test(self, text):
+        print text
 
     def discInfo(self):
         """
@@ -428,7 +437,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         Gets title information
         Returns nothing
         """
-        
+
         self.clearTable()
 
         log.debug("Checking for DVDs")
@@ -522,6 +531,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             self.lineEditNumbers.setDisabled(False)
             self.comboSeasons.clear()
             self.comboSeasons.setDisabled(False)
+            self.comboShowTitle.clear()
+            self.comboShowTitle.setDisabled(False)
             self.showTVDB = None
             self.textEditShowTitle.setText('')
             self.textEditShowTitle.setFocus()
@@ -531,6 +542,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             self.lineEditNumbers.setText('Episode Numbers')
             self.textEditShowTitle.setDisabled(True)
             self.comboSeasons.setDisabled(True)
+            self.comboShowTitle.setDisabled(True)
             self.lineEditNumbers.setDisabled(True)
 
 
@@ -555,7 +567,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             epName = self.showTVDB[seasonNum][int(epNum.text())].EpisodeName
             epTitle.setText(epName)
 
-            fname.setText('{} - {} - S{}E{}.mkv'.format(self.textEditShowTitle.text(), epName, seasonNum, epNum.text()))
+            fname.setText('{} - {}x{:02d}.mkv - {}'.format(self.textEditShowTitle.text(), seasonNum, epNum.text()), epName)
 
             newSaveTitles[str(discIndex.text())] = str(fname.text())
 
@@ -579,8 +591,17 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         name = str(self.textEditShowTitle.text())
         result = tvdb.search(name, 'en')
         self.showTVDB = result[0]
-        numseasons = len(self.showTVDB)
+        self.showsTVDB = result
 
+        for x in result:
+            self.comboShowTitle.addItem('{}'.format(x.SeriesName))
+
+
+    def showSelected(self):
+        show = self.showsTVDB[self.comboShowTitle.currentIndex()]
+        numseasons = len(show)
+        self.comboSeasons.clear()
+        
         for x in range(0, numseasons):
             self.comboSeasons.addItem('S{}'.format(x+1))
 

@@ -38,3 +38,7 @@ settings.cfg
 
 
 .idea
+classes/Autorippr/*
+tmp/*
+Notes.txt
+start.cmd
