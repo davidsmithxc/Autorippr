@@ -55,6 +55,7 @@ import sys
 import yaml
 import errno
 import subprocess
+import re
 from collections import defaultdict
 from classes import *
 from tendo import singleton
@@ -72,26 +73,30 @@ CONFIG_FILE = "{}/settings.cfg".format(
 tvdb = api.TVDB('B43FF87DE395DF56')
 notify = None
 
+def threaded(fn):
+    def wrapper(*args, **kwargs):
+        guihelper.GenericThread(fn,args=args,kwargs=kwargs).start()
+    return wrapper
+
 class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
     def __init__(self, config, parent=None):
         QtGui.QMainWindow.__init__(self, parent)
         self.setupUi(self)
 
         self.config = config
+
+        print 'comp path', config['compress']['compressionPath']
         
         # initialize Autoripper objects
         log.debug("Ripping initialised")
-        self.mkv_api = makemkv.MakeMKV(self.config)
+        self.mkv_api = makemkv.MakeMKV(self.config, threaded=True)
         self.dvds = None
 
-        # initialize threaded GUI functions
-        self.discInfo_thread = guihelper.discInfo(self.mkv_api)
-
         # connect signals to slots
-        self.buttonRip.clicked.connect(self.rip)
-        self.buttonCompress.clicked.connect(self.compress)
-        self.buttonDiscInfo.clicked.connect(self.discInfo)
-        self.buttonFB.clicked.connect(self.extras)
+        self.buttonRip.clicked.connect(self.ripClicked)
+        self.buttonCompress.clicked.connect(self.compressClicked)
+        self.buttonDiscInfo.clicked.connect(self.discInfoClicked)
+        self.buttonFB.clicked.connect(self.extrasClicked)
         self.buttonTvInfo.clicked.connect(self.tvInfo)
         self.checkTV.stateChanged.connect(self.tvCheckBox)
         self.comboShowTitle.currentIndexChanged.connect(self.showSelected)
@@ -102,6 +107,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         self.comboSeasons.setDisabled(True)
         self.comboShowTitle.setDisabled(True)
         self.lineEditNumbers.setDisabled(True)
+        self.lineEditNumbers.returnPressed.connect(self.discInfoClicked)
+        self.plainTextEdit.setReadOnly(True)
 
         # This is the visual element to enter TV show titles
         table_header = ['Index', 'Disc Title','Episode #', 'Duration', 'Episode Name', 'Filename']
@@ -111,6 +118,9 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
 
         self.showTVDB = None
 
+        # Set up threading signals
+        self.connect(self, QtCore.SIGNAL('titles_found(PyQt_PyObject)'), self.updateTable)
+        self.connect(self, QtCore.SIGNAL('shell_line(PyQt_PyObject)'), self.updateMessageBox)
 
 
     def eject(self, config, drive):
@@ -156,6 +166,11 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             del log
 
 
+    def ripClicked(self):
+        self.ripThread = guihelper.GenericThread(self.rip)
+        self.ripThread.start()
+
+
     def rip(self):
         """
             Main function for ripping
@@ -163,6 +178,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             Returns nothing
         """
         log = logger.Logger("Rip", self.config['debug'], self.config['silent'])
+
+        self.mkv_api.set_outHandle(self.emit)
 
         mkv_save_path = self.config['makemkv']['savePath']
 
@@ -189,7 +206,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                     print 'auto detecting type'
                     
                 if self.checkTV.isChecked():
-                    disc_title = '{} - S{}'.format(self.textEditShowTitle.text(), self.comboSeasons.currentIndex() + 1)
+                    disc_title = '{} - S{}'.format(self.showsTVDB[self.comboShowTitle.currentIndex()].SeriesName, self.comboSeasons.currentIndex() + 1)
                     self.mkv_api.set_title(disc_title)
                 else:
                     disc_title = self.mkv_api.get_title()
@@ -197,7 +214,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
 
                 disc_path = '{}/{}'.format(mkv_save_path, disc_title)
                 if not os.path.exists(disc_path) or self.checkTV.isChecked():
-                    os.makedirs(disc_path)
+                    if not os.path.exists(disc_path):
+                        os.makedirs(disc_path)
 
                     if self.dvds is None:
                         self.mkv_api.get_disc_info()
@@ -245,17 +263,19 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                                     mkv_save_path, dvdTitle['index'])
 
                             if status:
-                                log.info("It took {} minute(s) to complete the ripping of {} from {}".format(
+                                log.info("It took {:.1f} minute(s) to complete the ripping of {} from {} @ {:.2f} realtime".format(
                                     t.minutes,
                                     dvdTitle['title'],
-                                    disc_title
+                                    disc_title,
+                                    (dvdTitle['dur'] / 60.) / t.minutes
                                 ))
 
                                 database.update_video(dbvideo, 4)
 
                                 if 'rip' in self.config['notification']['notify_on_state']:
-                                    notify.rip_complete(dbvideo)
+                                    notify.rip_complete(dbvideo,info='in {:.1f} min @ {:.0%} realtime'.format(t.minutes, t.minutes / (dvdTitle['dur'] / 60.)))
 
+                                self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), "*** MakeMKV rip complete ***")
 
                             else:
                                 database.update_video(dbvideo, 2)
@@ -269,6 +289,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                                 log.info(
                                     "MakeMKV did not did not complete successfully")
                                 log.info("See log for more details")
+                                self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), "*** MakeMKV did not complete successfully ***")
+                                self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), "*** See log for more details ***")
 
                         if self.config['makemkv']['eject']:
                             self.eject(self.config, dvd['location'])
@@ -276,12 +298,25 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                         log.info("No video titles found")
                         log.info(
                             "Try decreasing 'minLength' in the config and try again")
+                        self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), "*** No video titles found ***")
+                        self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), "*** Try decreasing 'minLength' in the config and try again ***")
 
                 else:
-                    log.info("Video folder {} already exists".format(disc_title))
+                    msg = "Video folder {} already exists".format(disc_title)
+                    log.info(msg)
+                    self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), msg)
 
+            msg = '*** Ripping complete ***'
+            self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), msg)
         else:
             log.info("Could not find any DVDs in drive list")
+            msg = '*** Nothing to rip... ***'
+            self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), msg)
+
+
+    def compressClicked(self):
+        self.compressThread = guihelper.GenericThread(self.compress)
+        self.compressThread.start()
 
 
     def compress(self):
@@ -311,13 +346,15 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                     status = comp.compress(
                         args=self.config['compress']['com'],
                         nice=int(self.config['compress']['nice']),
-                        dbvideo=dbvideo
+                        dbvideo=dbvideo,
+                        outHandle=self.emit,
+                        threaded=True
                     )
 
                 if status:
                     log.info("Video was compressed and encoded successfully")
 
-                    log.info("It took {} minutes to compress {}".format(
+                    log.info("It took {:.1f} minutes to compress {}".format(
                         t.minutes, dbvideo.filename
                     )
                     )
@@ -328,7 +365,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                     )
 
                     if 'compress' in config['notification']['notify_on_state']:
-                        notify.compress_complete(dbvideo)
+                        notify.compress_complete(dbvideo, info='in {:.1f} minutes'.format(t.minutes))
 
                     comp.cleanup()
 
@@ -351,6 +388,11 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
             log.info("Queue does not exist or is empty")
 
 
+    def extrasClicked(self):
+        self.extrasThread = guihelper.GenericThread(self.extras)
+        self.extrasThread.start()
+
+
     def extras(self):
         """
             Main function for filebotting
@@ -359,12 +401,13 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         """
         log = logger.Logger("Extras", self.config['debug'], self.config['silent'])
 
-        fb = filebot.FileBot(self.config['debug'], self.config['silent'], self.plainTextEdit)
+        fb = filebot.FileBot(self.config['debug'], self.config['silent'], self.emit)
 
         dbvideos = database.next_video_to_filebot()
 
         for dbvideo in dbvideos:
             log.info("Attempting video rename")
+            fsize = os.path.getsize(dbvideo.path+'/'+dbvideo.filename) / 1073741824.0
 
             database.update_video(dbvideo, 7)
 
@@ -375,7 +418,8 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                 else:
                     movePath = self.config['filebot']['moviePath']
 
-            status = fb.rename(dbvideo, movePath)
+            with stopwatch.StopWatch() as t:
+                status = fb.rename(dbvideo, movePath)
 
             if status[0]:
                 log.info("Rename success")
@@ -398,6 +442,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
 
                     log.info("Completed work on {}".format(dbvideo.vidname))
 
+
                     if self.config['commands'] is not None and len(self.config['commands']) > 0:
                         for com in self.config['commands']:
                             subprocess.Popen(
@@ -412,7 +457,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                     database.update_video(dbvideo, 8)
 
                 if 'extra' in self.config['notification']['notify_on_state']:
-                    notify.extra_complete(dbvideo)
+                    notify.extra_complete(dbvideo, info='| Transfered {:.2f} GB @ {:.2f} MB/s'.format(fsize, (fsize * 1024) / (t.minutes * 60)))
 
                 log.debug("Attempting to delete %s" % dbvideo.path)
 
@@ -428,8 +473,12 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         else:
             log.info("No videos ready for filebot")
 
-    def _test(self, text):
-        print text
+
+    def discInfoClicked(self):
+        self.clearTable()
+        self.discInfoThread = guihelper.GenericThread(self.discInfo)
+        self.discInfoThread.start()
+
 
     def discInfo(self):
         """
@@ -437,45 +486,81 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         Gets title information
         Returns nothing
         """
-
-        self.clearTable()
+        self.mkv_api.reset()
 
         log.debug("Checking for DVDs")
-        dvds = self.mkv_api.find_disc()
-
-        self.dvds = dvds
+        self.mkv_api.set_outHandle(self.emit)
 
         if self.checkTV.isChecked():
             disc_type = self.mkv_api.set_type('tv')
         else:
             disc_type = self.mkv_api.get_type()
+        
+        if (disc_type == 'tv') and (self.checkTV.isChecked() is False):
+            self.checkTV.setChecked()
+
+        if disc_type == 'tv':
+            # This will crash if type 'tv' is auto-detected
+            show = self.showsTVDB[self.comboShowTitle.currentIndex()]
+            self.mkv_api.set_minLength(show.Runtime)
+
+        
+        dvds = self.mkv_api.find_disc()
+        self.dvds = dvds
         disc_title = self.mkv_api.get_title()
 
         self.mkv_api.get_disc_info()
-
         titles = self.mkv_api.get_savefiles()
-        titles = sorted(titles, key=lambda k: k['index']) 
+        titles = sorted(titles, key=lambda k: k['index'])
 
-        epNums = self.lineEditNumbers.text()
+        msg = '*** DiscInfo Complete ***'
+        self.emit(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), msg)
+        self.emit(QtCore.SIGNAL('titles_found(PyQt_PyObject)'), titles)
 
-        if ',' in epNums:
-            epNums = [int(str(x).strip()) for x in epNums.split(',')]
-            epNums.sort()
-        elif '-' in epNums:
-            epNums = epNums.split('-')
-            epNums = [int(x.strip()) for x in epNums.split(',')]
-            epNums.sort()
-            epNums = range(epNums[0], epNums[1])
-        elif epNums != 'Episode Numbers':
-            epNums = int(epNums.strip())
+
+    def updateTable(self, titles):
+        m = []  # regex match results
+        epNums = []  # found episodes
+
+        if self.checkTV.isChecked() is True:
+            seasonNum = self.comboSeasons.currentIndex()+1
+            show = self.showsTVDB[self.comboShowTitle.currentIndex()]
+
+        t = str(self.lineEditNumbers.text()) # cast as string, else s & t are same object
+        s = t.replace(' ', '')
+
+        r = re.compile('^([\d]+-[\d]+)|([\d]+)')
+        m = re.findall(r,s)
+
+        if m != []:
+            for _range, _val in m:
+                if _val != '':
+                    _val = _val.replace(',','')
+                    epNums.append(int(_val))
+                if _range != '':
+                    start = int(_range.split('-')[0])
+                    end = int(_range.split('-')[1]) + 1
+                    epNums += (range(start,end))
+        elif t != '' and t != 'Episode Numbers':
+            print 'Searching {} in S{}'.format(t, seasonNum)
+            for ep in show[seasonNum]:
+                # print ep.EpisodeName, ep.EpisodeName == t
+                if ep.EpisodeName == t:
+                    start = ep.EpisodeNumber
+                    print 'Match found!', start
+                    break
+            epNums = range(start,start+len(titles))
+            print 'Titles found', len(titles)
+            print 'Starting epNum', start
+            print 'EpRange', epNums
+
         else:
             epNums = [-1] * len(titles)
 
+        titles = sorted(titles, key=lambda k: k['index'])
 
-        seasonNum = self.comboSeasons.currentIndex()+1
-
-        for title in titles:
-            epNum = epNums[int(title['index'])]
+        for x, title in enumerate(titles):
+            epNum = epNums[x]
             rowPosition = self.tableWidget.rowCount()
             self.tableWidget.insertRow(rowPosition)
 
@@ -503,7 +588,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                 item = QtGui.QTableWidgetItem('')
                 self.tableWidget.setItem(rowPosition , 4, item)
             else:
-                epName = self.showTVDB[seasonNum][epNum].EpisodeName
+                epName = show[seasonNum][epNum].EpisodeName
                 item = QtGui.QTableWidgetItem(epName)
                 self.tableWidget.setItem(rowPosition , 4, item)
 
@@ -511,7 +596,7 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
                 item = QtGui.QTableWidgetItem('')
                 self.tableWidget.setItem(rowPosition , 5, item)
             else:
-                fname = '{} - {} - S{}E{}'.format(self.textEditShowTitle.text(), epName, seasonNum, epNum)
+                fname = '{} - {}x{} - {}'.format(show.SeriesName, seasonNum, epNum, epName)
                 item = QtGui.QTableWidgetItem(fname)
                 self.tableWidget.setItem(rowPosition , 5, item)
                 # title['title'] = fname
@@ -521,6 +606,10 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
         # self.tableWidget.sortByColumn(0)
 
         # self.mkv_api.set_savefiles(titles)
+
+
+    def updateMessageBox(self, message):
+        self.plainTextEdit.appendPlainText(message)
 
 
     def tvCheckBox(self):
@@ -612,6 +701,15 @@ class AutoRippr(QtGui.QMainWindow, gui.Ui_MainWindow):
 if __name__ == '__main__':
     # arguments = docopt.docopt(__doc__, version=__version__)
     config = yaml.safe_load(open(CONFIG_FILE))
+    
+    for folder in os.listdir(config['makemkv']['savePath']):
+        try:
+            path = os.path.join(config['makemkv']['savePath'], folder)
+            os.rmdir(path)
+            print 'removed {}'.format(path)
+        except OSError as ex:
+            if ex.errno == errno.ENOTEMPTY:
+                pass
 
     # skip original argv parsing
     if False:

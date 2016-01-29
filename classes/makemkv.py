@@ -18,11 +18,12 @@ import csv
 import logger
 import datetime
 import time
-
+import guihelper
+from PyQt4 import QtCore
 
 class MakeMKV(object):
 
-    def __init__(self, config):
+    def __init__(self, config, threaded=False):
         self.discIndex = 0
         self.vidName = ""
         self.path = ""
@@ -35,11 +36,15 @@ class MakeMKV(object):
         self.makemkvconPath = config['makemkv']['makemkvconPath']
         self.saveFiles = []
         self.os = config['os']
+        self.threaded = threaded
 
         if self.os == 'win32':
             self.makemkvMessages = './tmp/makemkvMessages.log'
         else:
             self.makemkvMessages = '/tmp/makemkvMessages'
+
+    def set_outHandle(self, Handle):
+        self.outHandle = Handle
 
     def _clean_title(self):
         """
@@ -112,6 +117,12 @@ class MakeMKV(object):
 
         return toreturn
 
+    def reset(self):
+        self.vidName = ""
+        self.path = ""
+        self.vidType = ""
+        self.saveFiles = []
+
     def set_title(self, vidname):
         """
             Sets local video name
@@ -152,8 +163,7 @@ class MakeMKV(object):
 
         fullpath = '%s/%s' % (self.path, self.vidName)
 
-        proc = subprocess.Popen(
-            [
+        cmd = [
                 '%smakemkvcon' % self.makemkvconPath,
                 'mkv',
                 'disc:%d' % self.discIndex,
@@ -162,16 +172,23 @@ class MakeMKV(object):
                 '--cache=%d' % self.cacheSize,
                 '--noscan',
                 '--minlength=%d' % self.minLength
-            ],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-        )
+            ]
 
-        (results, errors) = proc.communicate()
+        if self.threaded is True:
+            (errors, results, returncode) = guihelper.streamingsubprocess(cmd, self.outHandle, QtCore.SIGNAL('shell_line(PyQt_PyObject)'))
+        else:
+            proc = subprocess.Popen(
+                cmd,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            
+            (results, errors) = proc.communicate()
+            returncode = proc.returncode
 
-        if proc.returncode is not 0:
+        if returncode is not 0:
             self.log.error(
-                "MakeMKV (rip_disc) returned status code: %d" % proc.returncode)
+                "MakeMKV (rip_disc) returned status code: %d" % returncode)
 
         if errors is not None:
             if len(errors) is not 0:
@@ -222,17 +239,23 @@ class MakeMKV(object):
                 Success (Bool)
         """
         drives = []
-        proc = subprocess.Popen(
-            ['%smakemkvcon' % self.makemkvconPath, '-r', 'info', 'disc:-1'],
-            stderr=subprocess.PIPE,
-            stdout=subprocess.PIPE
-        )
+        cmd = ['%smakemkvcon' % self.makemkvconPath, '-r', 'info', 'disc:-1']
 
-        (results, errors) = proc.communicate()
+        if self.threaded is True:
+            (errors, results, returncode) = guihelper.streamingsubprocess(cmd, self.outHandle, QtCore.SIGNAL('shell_line(PyQt_PyObject)'))
+        else:
+            proc = subprocess.Popen(
+                cmd,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            
+            (results, errors) = proc.communicate()
+            returncode = proc.returncode
 
-        if proc.returncode is not 0:
+        if returncode is not 0:
             self.log.error(
-                "MakeMKV (find_disc) returned status code: %d" % proc.returncode)
+                "MakeMKV (find_disc) returned status code: %d" % returncode)
 
         if errors is not None:
             if len(errors) is not 0:
@@ -277,23 +300,30 @@ class MakeMKV(object):
                 None
         """
 
-        proc = subprocess.Popen(
-            [
+        cmd = [
                 '%smakemkvcon' % self.makemkvconPath,
                 '-r',
                 'info',
                 'disc:%d' % self.discIndex,
                 '--minlength=%d' % self.minLength,
                 '--messages=%s' % self.makemkvMessages
-            ],
-            stderr=subprocess.PIPE
-        )
+            ]
+        
+        if self.threaded is True:
+            (errors, results, returncode) = guihelper.streamingsubprocess(cmd, self.outHandle, QtCore.SIGNAL('shell_line(PyQt_PyObject)'))
+        else:
+            proc = subprocess.Popen(
+                cmd,
+                stderr=subprocess.PIPE,
+                stdout=subprocess.PIPE
+            )
+            
+            (results, errors) = proc.communicate()
+            returncode = proc.returncode
 
-        (results, errors) = proc.communicate()
-
-        if proc.returncode is not 0:
+        if returncode is not 0:
             self.log.error(
-                "MakeMKV (get_disc_info) returned status code: %d" % proc.returncode)
+                "MakeMKV (get_disc_info) returned status code: %d" % returncode)
 
         if errors is not None:
             if len(errors) is not 0:
@@ -315,6 +345,8 @@ class MakeMKV(object):
                     minutes=x.tm_min,
                     seconds=x.tm_sec
                 ).total_seconds()
+
+                print 'Checking titleDur and type', self.vidType, titleDur, self.maxLength
 
                 if self.vidType == "tv" and titleDur > self.maxLength:
                     self.log.debug("Excluding Title No.: {}, Title: {}. Exceeds maxLength".format(
@@ -421,3 +453,18 @@ class MakeMKV(object):
             self.vidType = None
 
         return self.vidType
+
+    def set_minLength(self, length):
+        """
+            Sets min length explicitly
+            Sets max length implicitly (for special episodes)
+
+            Inputs:
+                type   (int): min_length [minuts]
+                       (None): min_length * 2 >> max_length
+
+            Outputs:
+                None
+        """
+        self.minLength = (length * 0.8) * 60
+        self.maxLength = (length * 1.2) * 60

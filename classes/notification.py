@@ -43,9 +43,13 @@ class Notification(object):
                     self.log.error(
                         "Error loading notification class: {}".format(method))
 
-    def rip_complete(self, dbvideo):
+    def rip_complete(self, dbvideo, info=''):
 
+        if info != '':
+            info = ' '+info
+            
         status = 'Rip of %s complete' % dbvideo.vidname
+        status = 'Rip of {} complete{}'.format(dbvideo.vidname, info)
         self._send(status)
 
     def rip_fail(self, dbvideo):
@@ -53,9 +57,12 @@ class Notification(object):
         status = 'Rip of %s failed' % dbvideo.vidname
         self._send(status)
 
-    def compress_complete(self, dbvideo):
+    def compress_complete(self, dbvideo, info=''):
+        if info != '':
+            info = ' '+info
 
         status = 'Compress of %s complete' % dbvideo.vidname
+        status = 'Compress of {} complete{}'.format(dbvideo.vidname, info)
         self._send(status)
 
     def compress_fail(self, dbvideo):
@@ -63,9 +70,12 @@ class Notification(object):
         status = 'Compress of %s failed' % dbvideo.vidname
         self._send(status)
 
-    def extra_complete(self, dbvideo):
+    def extra_complete(self, dbvideo, info=''):
+        if info != '':
+            info = ' '+info
 
         status = 'Extra of %s complete' % dbvideo.vidname
+        status = 'Extra of {} complete{}'.format(dbvideo.vidname, info)
         self._send(status)
 
 if __name__ == '__main__':

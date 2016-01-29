@@ -23,4 +23,4 @@ class StopWatch(object):
     def __exit__(self, *args):
         endtime = datetime.datetime.now()
         totaltime = endtime - self.startTime
-        self.minutes = totaltime.seconds / 60
+        self.minutes = totaltime.seconds / 60.

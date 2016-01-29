@@ -19,7 +19,7 @@ import ffmpeg
 
 class Compression(object):
 
-    def __init__(self, config):
+    def __init__(self, config, outHandle=None):
         """
             Creates the required compression instances
 

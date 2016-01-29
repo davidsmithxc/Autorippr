@@ -172,4 +172,12 @@ def db_integrity_check():
     create_history_types()
     create_status_types()
 
-db_integrity_check()
+
+if __name__ == '__main__':
+    db_integrity_check()
+    Videos.update(statusid = 4).where(Videos.vidname == 'Big Buck Bunny').execute()
+    Videos.update(filename = 'Big_Buck_Bunny_1080p_surround_FrostWire.com.avi').where(Videos.vidname == 'Big Buck Bunny').execute()
+
+else:
+    db_integrity_check()
+

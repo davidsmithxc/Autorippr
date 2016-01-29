@@ -15,13 +15,15 @@ import os
 import re
 import subprocess
 import logger
-
+from PyQt4 import QtCore
 
 class FileBot(object):
 
     def __init__(self, debug, silent, outHandle):
         self.log = logger.Logger("Filebot", debug, silent)
-        self.outHandle = outHandle.appendPlainText
+        self.outHandle = outHandle
+        self.display = lambda x: self.outHandle(QtCore.SIGNAL('shell_line(PyQt_PyObject)'), x)
+        # ToDo: Fix subprocess call requirement of .cmd
         self.tmpFolder = 'C:\\Users\\David\\Documents\\Projects\\autorippr\\tmp'
 
     def rename(self, dbvideo, movePath):
@@ -68,7 +70,7 @@ class FileBot(object):
             ]
         
         print cmd
-        self.outHandle(' '.join(cmd))
+        self.display(' '.join(cmd))
 
         with open(self.tmpFolder+'\\tmp.cmd', 'wb+') as f:
             cmd = ' '.join(cmd)
@@ -81,11 +83,15 @@ class FileBot(object):
             stderr=subprocess.PIPE
         )
 
+        iterResults = ''
         lines_iterator = iter(proc.stdout.readline, b"")
         for line in lines_iterator:
-            self.outHandle(line.strip()) # yield line
+            self.display(line.strip()) # yield line
+            iterResults += line
 
-        (results, errors) = proc.communicate()
+        (errors, results) = proc.communicate()
+
+        results = iterResults + results
 
         os.remove(self.tmpFolder+'\\tmp.cmd')
 
